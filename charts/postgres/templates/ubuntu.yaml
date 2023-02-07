@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+  labels:
+    app: ubuntu
+spec:
+  containers:
+    - name: ubuntu
+      image: ubuntu:latest
+      command: ["/bin/bash", "-c", "apt update && apt install -y curl dnsutils && sleep 3650d"]
+      imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+  dnsConfig:
+    nameservers:
+      - 10.96.0.10
+    searches:
+      - postgres.svc.cluster.local
+      - svc.cluster.local
+      - cluster.local
+  terminationGracePeriodSeconds: 0
+#    options:
+#      - name: ndots
+#        value: "2"
+#      - name: edns0
+
+

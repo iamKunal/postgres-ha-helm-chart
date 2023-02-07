@@ -1,0 +1,12 @@
+templates:
+  default: &default
+    chart: ../charts/{{`{{ .Release.Name }}`}}
+    namespace: "{{`{{ .Release.Name }}`}}"
+    createNamespace: true
+
+
+releases:
+  - name: postgres
+    <<: *default
+  - name: localstorage
+    <<: *default

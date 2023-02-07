@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "postgres.fullname" . }}
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ include "postgres.fullname" . }}
+  selector:
+    matchLabels:
+      {{- include "postgres.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "postgres.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "postgres.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: POSTGRESQL_USERNAME
+              value: {{ .Values.postgres.username }}
+            - name: POSTGRESQL_PASSWORD
+              value: {{ .Values.postgres.password }}
+            - name: POSTGRESQL_PORT_NUMBER
+              value: {{ .Values.postgres.port | quote }}
+            - name: REPMGR_USERNAME
+              value: {{ .Values.repmgr.username }}
+            - name: REPMGR_PASSWORD
+              value: {{ .Values.repmgr.password }}
+            - name: CURRENT_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: REPMGR_PRIMARY_PORT
+              value: {{ .Values.postgres.port | quote }}
+            - name: REPMGR_PORT_NUMBER
+              value: {{ .Values.postgres.port | quote }}
+            - name: REPMGR_PRIMARY_HOST
+              value: {{ $primaryHost := print (include "postgres.fullname" .) "-0." (include  "postgres.fullname" .) "." .Release.Namespace ".svc.cluster.local" }}{{ $primaryHost }}
+            - name: REPMGR_PARTNER_NODES
+              value: {{ $pgFullName := include  "postgres.fullname" . }}{{ $namespace := .Release.Namespace }}{{ range $i,$e := until (int .Values.replicaCount)  }}{{ $currentNodeName := print ( $pgFullName ) "-" $e "." $pgFullName "." $namespace ".svc.cluster.local" }}{{ $currentNodeName }},{{ end }}
+            - name: REPMGR_NODE_NETWORK_NAME
+              value: "$(CURRENT_POD_NAME).{{ $serviceWithDomain :=  print (include "postgres.fullname" .) "." .Release.Namespace ".svc.cluster.local" }}{{ $serviceWithDomain }}"
+            - name: REPMGR_LOG_LEVEL
+              value: DEBUG
+            - name: POSTGRESQL_VOLUME_DIR
+              value: /pg
+            - name: PGDATA
+              value: /pg/data
+          ports:
+            - name: pg
+              containerPort: {{ .Values.postgres.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: {{ include "postgres.fullname" . }}
+              mountPath: /pg
+#          livenessProbe:
+#            httpGet:
+#              path: /
+#              port: http
+#          readinessProbe:
+#            httpGet:
+#              path: /
+#              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      terminationGracePeriodSeconds: 1
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ include "postgres.fullname" . }}
+        labels: {{- include "postgres.labels" . | nindent 10 }}
+      spec:
+        selector:
+          matchLabels:
+            {{- include "postgres.selectorLabels" . | nindent 12 }}
+
+        nodeAffinity:
+          required:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: Exists
+
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ .Values.storage.class }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
