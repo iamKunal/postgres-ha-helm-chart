@@ -1,0 +1,35 @@
+{{- range $i, $e := until (int .Values.replicaCount) }}
+{{- with $ }}
+
+---
+# Volume using a local filesystem, need to create multiple due to using localstorage, no dynamic provisioning for now
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "postgres.fullname" . }}-{{ $e }}
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.storage.class }}
+  local:
+    path: /tmp/work-pg/node-{{ $e }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - docker-desktop
+  claimRef:
+    name: data-{{ include "postgres.fullname" . }}-{{ $e }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

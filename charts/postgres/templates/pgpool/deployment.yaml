@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pgpool.fullname" . }}
+  labels:
+    {{- include "pgpool.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.pgpool.replicaCount }}
+  serviceName: {{ include "pgpool.fullname" . }}
+  selector:
+    matchLabels:
+      {{- include "pgpool.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "pgpool.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "postgres.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.pgpool.image.repository }}:{{ .Values.pgpool.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.pgpool.image.pullPolicy }}
+          env:
+            - name: PGPOOL_ADMIN_USERNAME
+              value: {{ .Values.pgpool.adminUsername }}
+            - name: PGPOOL_ADMIN_PASSWORD
+              value: {{ .Values.pgpool.adminPassword }}
+            - name: PGPOOL_POSTGRES_USERNAME
+              value: {{ .Values.postgres.username }}
+            - name: PGPOOL_POSTGRES_PASSWORD
+              value: {{ .Values.postgres.password }}
+            - name: PGPOOL_SR_CHECK_USER
+              value: {{ .Values.repmgr.username }}
+            - name: PGPOOL_SR_CHECK_PASSWORD
+              value: {{ .Values.repmgr.password }}
+            - name: PGPOOL_BACKEND_NODES
+              value: {{ $pgFullName := include  "postgres.fullname" . }}{{ $postgresPort := .Values.postgres.port }}{{ $namespace := .Release.Namespace }}{{ range $i,$e := until (int .Values.replicaCount)  }}{{ $currentNodeName := print $e ":" ( $pgFullName ) "-" $e "." $pgFullName "." $namespace ".svc.cluster.local:" $postgresPort }}{{ $currentNodeName }},{{ end }}
+            - name: PGPOOL_HEALTH_CHECK_MAX_RETRIES
+              value: {{ .Values.pgpool.healthcheck.maxRetries | quote }}
+            - name: PGPOOL_HEALTH_CHECK_RETRY_DELAY
+              value: {{ .Values.pgpool.healthcheck.retryDelaySeconds | quote }}
+            - name: PGPOOL_CLIENT_MIN_MESSAGES
+              value: DEBUG5
+            - name: BITNAMI_DEBUG
+              value: "true"
+          ports:
+            - name: pg
+              containerPort: {{ .Values.postgres.port }}
+              protocol: TCP
+#          livenessProbe:
+#            httpGet:
+#              path: /
+#              port: http
+#          readinessProbe:
+#            httpGet:
+#              path: /
+#              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command: ["/opt/bitnami/scripts/pgpool/healthcheck.sh"]
+      terminationGracePeriodSeconds: 1
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

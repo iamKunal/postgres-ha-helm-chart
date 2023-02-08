@@ -68,7 +68,7 @@ spec:
               containerPort: {{ .Values.postgres.port }}
               protocol: TCP
           volumeMounts:
-            - name: {{ include "postgres.fullname" . }}
+            - name: data
               mountPath: /pg
 #          livenessProbe:
 #            httpGet:
@@ -80,7 +80,6 @@ spec:
 #              port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      terminationGracePeriodSeconds: 1
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -93,9 +92,13 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+#      volumes:
+#        - name: {{ include "postgres.fullname" . }}
+#          persistentVolumeClaim:
+#            claimName: $(CURRENT_POD_NAME)
   volumeClaimTemplates:
     - metadata:
-        name: {{ include "postgres.fullname" . }}
+        name: data
         labels: {{- include "postgres.labels" . | nindent 10 }}
       spec:
         selector:

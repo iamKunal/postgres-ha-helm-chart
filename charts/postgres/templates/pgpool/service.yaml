@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pgpool.fullname" . }}
+  labels:
+    {{- include "pgpool.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.postgres.port }}
+      targetPort: pg
+      protocol: TCP
+      name: pg
+  selector:
+    {{- include "pgpool.selectorLabels" . | nindent 4 }}
