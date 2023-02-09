@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "postgres.fullname" . }}-heartbeat-generate
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+spec:
+  schedule: "* * * * *"
+  suspend: true
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          labels:
+            k8s-job: {{ include "postgres.fullname" . }}-heartbeat-generate
+          containers:
+          - name: heartbeat-generator
+            image: postgres
+            imagePullPolicy: IfNotPresent
+            env:
+              - name: PGPASSWORD
+                value: {{ .Values.postgres.password }}
+            command:
+            - psql
+            - -v
+            - ON_ERROR_STOP=1
+            - -h
+            - {{ include "pgpool.fullname" . }}
+            - -p
+            - {{ .Values.postgres.port | quote }}
+            - -d
+            - postgres
+            - -U
+            - {{ .Values.postgres.username }}
+            - -c
+            - 'create table if not exists __pg_heartbeat (id INT8 primary key, last_update TIMESTAMP);'
+            - -c
+            - 'insert into __pg_heartbeat values(1, CURRENT_TIMESTAMP) on conflict(id) do update set last_update = CURRENT_TIMESTAMP;'
+          restartPolicy: OnFailure
