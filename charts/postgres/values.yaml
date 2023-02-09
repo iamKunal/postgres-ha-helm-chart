@@ -35,6 +35,15 @@ storage:
   class: "localstorage"
   size: 100Mi
 
+metrics:
+  exporter:
+    image:
+      repository: bitnami/postgres-exporter
+      pullPolicy: IfNotPresent
+      tag: "0.11.1"
+    # DO NOT Change this as could not find doc regarding this
+    port: 9187
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

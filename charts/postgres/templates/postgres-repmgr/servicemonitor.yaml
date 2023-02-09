@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+    release: prometheus
+  name: {{ include "postgres.fullname" . }}
+spec:
+  endpoints:
+  - port: pg-metrics
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "postgres.selectorLabels" . | nindent 6 }}

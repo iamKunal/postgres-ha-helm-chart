@@ -1,0 +1,5 @@
+kube-prometheus-stack:
+  prometheus-node-exporter:
+    # required for docker on mac
+    hostRootFsMount:
+      enabled: false

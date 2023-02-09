@@ -1,11 +1,17 @@
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
 templates:
   default: &default
     chart: ../charts/{{`{{ .Release.Name }}`}}
     namespace: "{{`{{ .Release.Name }}`}}"
     createNamespace: true
 
-
 releases:
+  - name: prometheus
+    # this is required due to helm not installing crds
+    disableValidationOnInstall: true
+    <<: *default
   - name: postgres
     <<: *default
   - name: localstorage

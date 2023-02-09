@@ -12,5 +12,10 @@ spec:
       targetPort: pg
       protocol: TCP
       name: pg
+    - port: {{ .Values.metrics.exporter.port }}
+      targetPort: pg-metrics
+      protocol: TCP
+      name: pg-metrics
+
   selector:
     {{- include "postgres.selectorLabels" . | nindent 4 }}
