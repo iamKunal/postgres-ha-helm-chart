@@ -1,0 +1,23 @@
+velero:
+  kubectl:
+    image:
+      repository: rancher/kubectl
+      tag: v1.23.7-arm64
+  # to run for arm64
+  upgradeCRDs: false
+  configuration:
+    defaultVolumesToFsBackup: true
+#    features:
+    provider: replicated.com/hostpath
+    backupStorageLocation:
+      name: default
+      bucket: hostpath-snapshots
+      config:
+        path: /tmp/snapshots
+  initContainers:
+    - name: velero-plugin-for-local-volume-provider
+      image: replicated/local-volume-provider:v0.3.3
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+        - mountPath: /target
+          name: plugins

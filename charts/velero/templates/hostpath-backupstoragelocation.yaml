@@ -1,0 +1,16 @@
+#apiVersion: velero.io/v1
+#kind: BackupStorageLocation
+#metadata:
+#  name: default
+#  namespace: velero
+#spec:
+#  backupSyncPeriod: 2m0s
+#  provider: replicated.com/hostpath
+#  objectStorage:
+#    # This corresponds to a unique volume name
+#    bucket: hostPath-snapshots
+#  config:
+#    # This path must exist on the host and be writable outside the group
+#    path: /tmp/snapshots
+#    # Must be provided if you're using Restic; [default mount] + [bucket] + [prefix] + "restic"
+#    resticRepoPrefix: /var/velero-local-volume-provider/hostpath-snapshots/restic
